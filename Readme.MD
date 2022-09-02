@@ -45,9 +45,9 @@ I have hardcoded a conversion from "&" to "and", as MangaDex mostly uses "and" i
 (This is not a perfect solution, but it works for me, and I don't have a better idea at the moment)
 If need be, you can add more entries to the title_rename.csv file, following the format:
     
-    ```
-    "old_title", "new_title"
-    ```
+   ```
+   "old_title", "new_title"
+   ```
 
 
 ## My workflow for best tagging

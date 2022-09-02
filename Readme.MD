@@ -46,7 +46,7 @@ I have hardcoded a conversion from "&" to "and", as MangaDex mostly uses "and" i
 If need be, you can add more entries to the title_rename.csv file, following the format:
     
    ```
-   "old_title", "new_title"
+    "old_title", "new_title"
    ```
 
 

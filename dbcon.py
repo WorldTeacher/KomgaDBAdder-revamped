@@ -1,16 +1,25 @@
 import sqlite3
+import string
 import pandas as pd
 import time
 import logger
+import json
 log=logger.log()
+
 def connect():
-    conn=sqlite3.connect('database.sqlite')
+    with open('settings.json') as f:
+        config=json.load(f)
+    global db_path
+    db_path=config['Database-Path']
+    
+    conn=sqlite3.connect(db_path)
     c=conn.cursor()
     return c,conn
 
 def make_csv():
     c,conn=connect()
-    query="SELECT id,name FROM series"
+    #get the series_id and series_name from the SERIES table if the ageRating in the SERIES_METADATA table is null
+    query="SELECT ID,NAME FROM SERIES WHERE ID IN (SELECT SERIES_ID FROM SERIES_METADATA WHERE AGE_RATING IS NULL)"
     series_id={'series_id':[],'series_name':[]}
     c.execute(query)
     for row in c:
@@ -20,19 +29,23 @@ def make_csv():
         #print(series_id)
     conn.close()
     df=pd.DataFrame(series_id)
-    df.to_csv('series_id.csv',index=False,header=True)
+    df.to_csv('series_id-new.csv',index=False,header=True)
 
 def check_db():
     #see if database is reachable
-    c,conn=connect()
-    query="SELECT Sqlite_version()"
-    c.execute(query)
-    result=c.fetchone()
-    conn.close()
+    try:
+        c,conn=connect()
+        query="SELECT Sqlite_version()"
+        c.execute(query)
+        result=c.fetchone()
+        conn.close()
+        log.info_api(f"Database {db_path} is reachable")
+    except sqlite3.OperationalError:
+        log.fatal_db(f"Database not reachable, is this the correct path? {db_path}")
     return result
 
 def write_db_summary(series_id,summary):
-    log.info_api("Writing summary to database")
+    log.info_db("Writing summary to database")
     #write series_id and series_name to database
     c,conn=connect()
     #insert values from data into database at table series_metadata
@@ -40,24 +53,22 @@ def write_db_summary(series_id,summary):
     c.execute(query,(summary,series_id))
     conn.commit()
     conn.close()
-    log.info_api("Finished writing summary to database")
+    log.info_db("Finished writing summary to database")
 
 def write_db_genres(series_id,genres):
-    log.info_api("Writing genres to database")
-    #write series_id and series_name to database
+    log.info_db("Writing genres to database")
     c,conn=connect()
-    #insert values from data into database at table series_metadata
     for genre in genres:
         genre=genre.lower()
-        query="INSERT INTO SERIES_METADATA_GENRE (SERIES_ID,GENRE) VALUES (?,?)"
-        c.execute(query,(series_id,genre))
+        #insert values from data into database at table series_metadata_genre if they don't already exist
+        query="INSERT INTO SERIES_METADATA_GENRE (SERIES_ID,GENRE) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM SERIES_METADATA_GENRE WHERE SERIES_ID=? AND GENRE=?) "
+        c.execute(query,(series_id,genre,series_id,genre))
     conn.commit()
     conn.close()
-    log.info_api(f"Finished writing genres {genres} to database")
+    log.info_db(f"Finished writing genres {genres} to database")
 
-def write_db_tags(series_id,tags):
-    log.info_api("Writing tags to database")
-    log.debug_api(f"Tags: {tags}")
+def write_db_tags(series_id,tags): 
+    log.info_db("Writing tags to database")
     #write series_id and series_name to database
     c,conn=connect()
     #insert values from data into database at table series_metadata
@@ -66,14 +77,14 @@ def write_db_tags(series_id,tags):
         if tag is None:
             continue
         tag=tag.lower()
-        query="INSERT INTO SERIES_METADATA_TAG (SERIES_ID,TAG) VALUES (?,?)"
-        c.execute(query,(series_id,tag))
+        query="INSERT INTO SERIES_METADATA_TAGS (SERIES_ID,TAG) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM SERIES_METADATA_TAGS WHERE SERIES_ID=? AND TAG=?) "
+        c.execute(query,(series_id,tag,series_id,tag))
     conn.commit()
     conn.close()
-    log.info_api(f"Finished writing tags {tags} to database")
+    log.info_db(f"Finished writing tags {tags} to database")
 
 def write_db_ageRating(series_id,ageRating):
-    log.info_api("Writing ageRating to database")
+    log.info_db("Writing ageRating to database")
     #write series_id and series_name to database
     c,conn=connect()
     #insert values from data into database at table series_metadata
@@ -81,10 +92,10 @@ def write_db_ageRating(series_id,ageRating):
     c.execute(query,(ageRating,series_id))
     conn.commit()
     conn.close()
-    log.info_api(f"Finished writing ageRating {ageRating}  to database")
+    log.info_db(f"Finished writing ageRating {ageRating}  to database")
 
 def write_db_status(series_id,status):
-    log.info_api("Writing status to database")
+    log.info_db("Writing status to database")
     #write series_id and series_name to database
     c,conn=connect()
     if status=='completed':
@@ -96,7 +107,7 @@ def write_db_status(series_id,status):
     c.execute(query,(status,series_id))
     conn.commit()
     conn.close()
-    log.info_api(f"Finished writing status {status} to database")
+    log.info_db(f"Finished writing status {status} to database")
 
 def remove_text_in_parentheses_from_db():
     c,conn=connect()
@@ -109,8 +120,9 @@ def remove_text_in_parentheses_from_db():
 
         conn.commit()
         time.sleep(1)
+
 def write_db(data):
-    log.info_api("Writing to database")
+    log.info_db("Writing to database")
     series_id=data['series_id']
     summary=data['summary'] #-> summary (string)
     genres=data['genres']   #-> genres (list)
@@ -122,40 +134,13 @@ def write_db(data):
     write_db_tags(series_id,tags)
     write_db_ageRating(series_id,ageRating)
     write_db_status(series_id,status)
-    log.info_api(f'Finished writing {series_id} to database')
-def test(data):
-    summary=data['summary'] #-> summary (string)
-    genres=data['genres']   #-> genres (list)
-    tags=data['tags']    #-> tags (list)
-    ageRating=data['ageRating'] #-> ageRating (int)
-    status=data['status'] #-> status (string)
-    for tag in tags:
-        print(tag)
-        print(tag.lower())
 
-def db_fix_status():
+    log.info_db(f'Finished writing {series_id} to database')
+
+def test():
     c,conn=connect()
-    #in series_metadata, change status to ENDED if it is COMPLETED
-    c.execute("UPDATE SERIES_METADATA SET STATUS='ENDED' WHERE STATUS='COMPLETED'")
-    conn.commit()
-    conn.close()
-def db_fix_ageRating():
-    c,conn=connect()
-    #in series_metadata, change agerating to 12 if it is 0
-    c.execute("UPDATE SERIES_METADATA SET AGE_RATING=12 WHERE AGE_RATING=0")
-    conn.commit()
-    conn.close()
-def db_add_language():
-    c,conn=connect()
-    #in series_metadata, add language en
-    c.execute("UPDATE SERIES_METADATA SET LANGUAGE='en'")
-    conn.commit()
+    c.execute("SELECT * FROM SERIES_METADATA")
+    print(c.fetchall())
     conn.close()
 if __name__=="__main__":
-    data={'id':["095S75W3H260P"],'summary':[],'genres':[],'tags':['Romance', "Girls' Love"],'status':'ongoing', 'ageRating':[0]}
-    #print(type(data['id'][0]),type(data['summary'][0]),type(data['genres']),type(data['tags']),type(data['ageRating']))
-    #write_db(data)
-    # test(data)
-    db_fix_status()   
-    #db_fix_ageRating()
-    # db_add_language()
+    make_csv()

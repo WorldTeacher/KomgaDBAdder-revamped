@@ -1,4 +1,4 @@
-# Welcome to the documentation of the KomgaDB MetadataInjector
+# Welcome to the documentation of the KomgaDBAdder-revamped
 
 This documentation describes the metadata injection process, and how to use it. The process is divided in two steps:
 

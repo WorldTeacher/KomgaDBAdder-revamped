@@ -7,7 +7,6 @@ class log:
         logging.basicConfig(filename='program_log.log',level=logging.DEBUG,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.api=logging.getLogger('API')
         self.main=logging.getLogger('Main')
-        self.webrequest=logging.getLogger('WebRequest')
         self.db=logging.getLogger('DB')
     def info_api(self,message):
         self.api.info(message)
@@ -33,18 +32,19 @@ class log:
         self.main.critical(message)
     def fatal_main(self,message):
         self.main.fatal(message)
-    def info_webrequest(self,message):
-        self.webrequest.info(message)
-    def error_webrequest(self,message):
-        self.webrequest.error(message)
-    def debug_webrequest(self,message):
-        self.webrequest.debug(message)
-    def warning_webrequest(self,message):
-        self.webrequest.warning(message)
-    def critical_webrequest(self,message):
-        self.webrequest.critical(message)
-    def fatal_webrequest(self,message):
-        self.webrequest.fatal(message)
+    def info_db(self,message):
+        self.db.info(message)
+    def error_db(self,message):
+        self.db.error(message)
+    def debug_db(self,message):
+        self.db.debug(message)
+    def warning_db(self,message):
+        self.db.warning(message)
+    def critical_db(self,message):
+        self.db.critical(message)
+    def fatal_db(self,message):
+        self.db.fatal(message)
+        
 
 
 

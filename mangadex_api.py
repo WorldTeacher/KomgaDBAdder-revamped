@@ -1,15 +1,18 @@
 # * This is the script that interacts with the API.
 # * It is used to get metadata for a manga.
 
-
 import requests
 import json
-from urllib.request import urlopen, Request
 import logger
 import csv
 
 log=logger.log()
 title_replace_list={'title':[],'title_replace':[]}
+with open('settings.json') as f:
+    settings=json.load(f)
+    rating_safe=settings['rating_safe']
+    rating_suggestive=settings['rating_suggestive']
+    rating_erotica=settings['rating_erotica']
 with open('title_rename.csv') as f:
     has_header = csv.Sniffer().has_header(f.read(1024))
     f.seek(0)  # Rewind.
@@ -85,11 +88,11 @@ def process_metadata(metadata):
             mangadata['status'].append(status_data)
         if attr=='contentRating':
             if metadata[attr]=='safe':
-                    age=12
+                age=rating_safe
             elif metadata[attr]=='suggestive':
-                age=16
+                age=rating_suggestive
             elif metadata[attr]=='erotica':
-                age=18
+                age=rating_erotica
             mangadata['ageRating'].append(age)
             mangadata['tags'].append(metadata[attr])
         if attr=='tags':
@@ -110,13 +113,12 @@ def process_metadata(metadata):
         #         else: print(metadata[attr]['engtl'])            
     #print(mangadata)
     return mangadata
+
 def api_search(title):
     title=title_replace(title)
     metadata=get_metadata(title)
-    #print(metadata)
     if metadata is not None:
         processed_metadata=process_metadata(metadata)
-        #print(processed_metadata)
     else:
         processed_metadata=None
     return processed_metadata
@@ -125,7 +127,7 @@ def title_replace(title):
     for i in range(len(title_replace_list['title'])):
         if title==title_replace_list['title'][i]:
             title=title_replace_list['title_replace'][i]
-    #if title contains & replace with 'and'
+    #if title contains & replace with 'and', as the mangadex api does not support &
     if '&' in title:
         title=title.replace('&','and')
     #if title contains Pokémon, set title to Pokémon Adventure
@@ -137,8 +139,5 @@ def title_replace(title):
         title='skip'
     return title
 if __name__=='__main__':
-    #print(api_search("High School DXD - Asia & Koneko's Secret Contract!"))
-    #print(api_search("Becchin to Mandara"))
-    # print(title_replace(title="JoJo's Bizarre Adventure - Artbooks & Spinoffs"))
     pass
 

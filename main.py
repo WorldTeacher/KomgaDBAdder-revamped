@@ -99,3 +99,4 @@ def main():
     print(f"Program took {end-start} seconds to run")
 if __name__=="__main__":
     main()
+    print("Program finished, check log for potential errors")

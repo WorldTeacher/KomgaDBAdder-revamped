@@ -1,5 +1,4 @@
 import sqlite3
-import string
 import pandas as pd
 import time
 import logger
@@ -29,7 +28,7 @@ def make_csv():
         #print(series_id)
     conn.close()
     df=pd.DataFrame(series_id)
-    df.to_csv('series_id-new.csv',index=False,header=True)
+    df.to_csv('series_id-newer.csv',index=False,header=True)
 
 def check_db():
     #see if database is reachable

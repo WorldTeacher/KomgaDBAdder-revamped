@@ -57,10 +57,14 @@ def write_db_genres(series_id,genres):
 
 def write_db_tags(series_id,tags):
     log.info_api("Writing tags to database")
+    log.debug_api(f"Tags: {tags}")
     #write series_id and series_name to database
     c,conn=connect()
     #insert values from data into database at table series_metadata
     for tag in tags:
+        #check if tag is NoneType
+        if tag is None:
+            continue
         tag=tag.lower()
         query="INSERT INTO SERIES_METADATA_TAG (SERIES_ID,TAG) VALUES (?,?)"
         c.execute(query,(series_id,tag))
@@ -115,8 +119,18 @@ def write_db(data):
     write_db_ageRating(series_id,ageRating)
     write_db_status(series_id,status)
     log.info_api(f'Finished writing {series_id} to database')
+def test(data):
+    summary=data['summary'] #-> summary (string)
+    genres=data['genres']   #-> genres (list)
+    tags=data['tags']    #-> tags (list)
+    ageRating=data['ageRating'] #-> ageRating (int)
+    status=data['status'] #-> status (string)
+    for tag in tags:
+        print(tag)
+        print(tag.lower())
 if __name__=="__main__":
-    data={'id':["095S75W3H260P"],'summary': ['Growth cheats? Infinite magic power? The ability to utilize all archetypes? What’s the point if instant death ends everything with a single attack? High school senior Yogiri Takatou was on a school field trip when he woke up to a dragon assaulting his sightseeing bus, with the only ones still on the bus being him and his female classmate, the panicking Tomochika Dannoura. Apparently the rest of his classmates had been given special powers by Sion, a woman who introduced herself as Sage, and escaped from the dragon, leaving those that hadn’t received any special powers behind as dragon bait. And so Yogiri was thrown into a parallel universe full of danger, with no idea of what just happened. Likewise, Sion had no way of knowing just what kind of being she had summoned to her world.'], 'language': ['en'], 'genres': ['Action', 'Comedy', 'Adventure', 'Isekai', 'Fantasy'], 'tags': ['shounen', 'safe', 'Demons', 'Ghosts', 'Magic', 'Supernatural'], 'status': ['ongoing'], 'ageRating': [0]}
+    data={'id':["095S75W3H260P"],'summary':[],'genres':[],'tags':['Romance', "Girls' Love"],'status':'ongoing', 'ageRating':[0]}
     #print(type(data['id'][0]),type(data['summary'][0]),type(data['genres']),type(data['tags']),type(data['ageRating']))
     #write_db(data)
-    make_csv()
+    test(data)
+    

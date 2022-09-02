@@ -61,7 +61,11 @@ def main():
             series_id=row['series_id']
             series_name=row['series_name']
             # Get series_metadata from mangadex_api
-            series_metadata=manga.get_metadata(series_name)
+            series_metadata=manga.api_search(series_name)
+            # Check if series_metadata is None
+            if series_metadata is None:
+                log.warning_main(f'No metadata for {series_name}')
+                continue
             summary=series_metadata['summary'][0]
             genres=series_metadata['genres']
             tags=series_metadata['tags']

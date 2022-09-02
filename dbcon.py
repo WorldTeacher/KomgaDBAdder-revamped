@@ -87,6 +87,10 @@ def write_db_status(series_id,status):
     log.info_api("Writing status to database")
     #write series_id and series_name to database
     c,conn=connect()
+    if status=='completed':
+        status='ENDED'
+    status=status.upper()
+
     #insert values from data into database at table series_metadata
     query="UPDATE SERIES_METADATA SET STATUS=? WHERE SERIES_ID=?"
     c.execute(query,(status,series_id))
@@ -128,9 +132,30 @@ def test(data):
     for tag in tags:
         print(tag)
         print(tag.lower())
+
+def db_fix_status():
+    c,conn=connect()
+    #in series_metadata, change status to ENDED if it is COMPLETED
+    c.execute("UPDATE SERIES_METADATA SET STATUS='ENDED' WHERE STATUS='COMPLETED'")
+    conn.commit()
+    conn.close()
+def db_fix_ageRating():
+    c,conn=connect()
+    #in series_metadata, change agerating to 12 if it is 0
+    c.execute("UPDATE SERIES_METADATA SET AGE_RATING=12 WHERE AGE_RATING=0")
+    conn.commit()
+    conn.close()
+def db_add_language():
+    c,conn=connect()
+    #in series_metadata, add language en
+    c.execute("UPDATE SERIES_METADATA SET LANGUAGE='en'")
+    conn.commit()
+    conn.close()
 if __name__=="__main__":
     data={'id':["095S75W3H260P"],'summary':[],'genres':[],'tags':['Romance', "Girls' Love"],'status':'ongoing', 'ageRating':[0]}
     #print(type(data['id'][0]),type(data['summary'][0]),type(data['genres']),type(data['tags']),type(data['ageRating']))
     #write_db(data)
-    test(data)
-    
+    # test(data)
+    db_fix_status()   
+    #db_fix_ageRating()
+    # db_add_language()

@@ -6,29 +6,44 @@ import requests
 import json
 from urllib.request import urlopen, Request
 import logger
+import csv
 
 log=logger.log()
-
+title_replace_list={'title':[],'title_replace':[]}
+with open('title_rename.csv') as f:
+    has_header = csv.Sniffer().has_header(f.read(1024))
+    f.seek(0)  # Rewind.
+    reader = csv.reader(f)
+    if has_header:
+        next(reader)
+    for row in reader:
+        title_replace_list['title'].append(row[0])
+        title_replace_list['title_replace'].append(row[1])
 def get_metadata(title):
-    url=f'https://api.mangadex.org/manga?title={title}&order[relevance]=desc'
-    log.info_api(f'Getting metadata for {title}')
-    log.info_api(f'URL: {url}')
-    try:
-        data=requests.get(url)
-        log.debug_api(f'API response: {data.status_code}')
-        if data.status_code==200:
-            log.info_api("API request successful")
-            datafields=json.loads(data.text)
-        metadata=datafields['data'][0]['attributes']
-        #result=process_metadata(metadata)
-        #if status code is >=400, then there is no data, skip 
-        if data.status_code>=400:
-            log.warning_api(f'No data for {title}')
+    if title != "skip" :
+        url=f'https://api.mangadex.org/manga?title={title}&order[relevance]=desc'
+        log.info_api(f'Getting metadata for {title}')
+        log.info_api(f'URL: {url}')
+        try:
+            data=requests.get(url)
+            log.debug_api(f'API response: {data.status_code}')
+            if data.status_code==200:
+                log.info_api("API request successful")
+                datafields=json.loads(data.text)
+            metadata=datafields['data'][0]['attributes']
+            #result=process_metadata(metadata)
+            #if status code is >=400, then there is no data, skip 
+            if data.status_code>=400:
+                log.warning_api(f'No data for {title}')
+                metadata=None
+        except Exception as e:
+            log.error_api(f'Error: {e}')
             metadata=None
-    except Exception as e:
-        log.error_api(f'Error: {e}')
+        return metadata
+    else:
+        log.warning_api(f'Skipping Title, as it is in the skip list')
         metadata=None
-    return metadata
+        return metadata
 def process_metadata(metadata):
     mangadata={'summary':[],'language':[],'genres':[],'tags':[],'status':[],'ageRating':[]} #! removed ,'publisher':[], since this is mostly handeled by comictagger
         
@@ -53,19 +68,24 @@ def process_metadata(metadata):
         #         mangadata['title'].append(title_data)
             
         if attr=='description':
-            description_data=str(metadata[attr]['en'])
-            description_data=description_data.replace('\n','')
-            description_data=description_data.replace('    ',' ')
-            #replace everything after ----
-            description_data=description_data.split('---')[0]
-            mangadata['summary'].append(description_data)
-            mangadata['language'].append('en')
+            #check if description is empty
+            if metadata['description']==[] or metadata['description']==None:
+                log.info_api('No description')
+                mangadata['summary'].append('No description available')
+            else:
+                description_data=str(metadata[attr]['en'])
+                description_data=description_data.replace('\n','')
+                description_data=description_data.replace('    ',' ')
+                #replace everything after ----
+                description_data=description_data.split('---')[0]
+                mangadata['summary'].append(description_data)
+                mangadata['language'].append('en')
         if attr=='status':
             status_data=metadata[attr]
             mangadata['status'].append(status_data)
         if attr=='contentRating':
             if metadata[attr]=='safe':
-                    age=0
+                    age=12
             elif metadata[attr]=='suggestive':
                 age=16
             elif metadata[attr]=='erotica':
@@ -91,6 +111,7 @@ def process_metadata(metadata):
     #print(mangadata)
     return mangadata
 def api_search(title):
+    title=title_replace(title)
     metadata=get_metadata(title)
     #print(metadata)
     if metadata is not None:
@@ -99,6 +120,25 @@ def api_search(title):
     else:
         processed_metadata=None
     return processed_metadata
+
+def title_replace(title):
+    for i in range(len(title_replace_list['title'])):
+        if title==title_replace_list['title'][i]:
+            title=title_replace_list['title_replace'][i]
+    #if title contains & replace with 'and'
+    if '&' in title:
+        title=title.replace('&','and')
+    #if title contains Pokémon, set title to Pokémon Adventure
+    if 'Pokémon' in title:
+        title='Pokémon Adventure'
+    if 'Pokémon' in title:
+        title='Pokémon Adventure'
+    if title=='Good Dog, Cerberus!':
+        title='skip'
+    return title
 if __name__=='__main__':
-    api_search()
+    #print(api_search("High School DXD - Asia & Koneko's Secret Contract!"))
+    #print(api_search("Becchin to Mandara"))
+    # print(title_replace(title="JoJo's Bizarre Adventure - Artbooks & Spinoffs"))
+    pass
 
